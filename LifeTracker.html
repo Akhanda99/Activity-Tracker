@@ -204,6 +204,7 @@ body {
   <div class="sidebar-footer">
     <button class="btn btn-ghost btn-sm" onclick="syncAll()" style="width:100%">↻ Sync now</button>
     <div class="last-sync" id="last-sync"></div>
+    <div style="font-size:10px;color:var(--light);text-align:center;margin-top:4px">v1.0 · Supabase connected</div>
   </div>
 </nav>
 
@@ -606,7 +607,8 @@ function renderDashboard(){
 
   const weekStart=new Date(now);
   weekStart.setDate(now.getDate()-((now.getDay()+6)%7)); weekStart.setHours(0,0,0,0);
-  const weekE=entries.filter(e=>new Date(e.date+'T00:00:00')>=weekStart);
+  const weekStartStr=weekStart.toISOString().split('T')[0];
+  const weekE=entries.filter(e=>e.date>=weekStartStr&&e.date<=today);
   const weekH=weekE.reduce((s,e)=>s+e.hours,0);
 
   const monthE=entries.filter(e=>e.date.startsWith(today.slice(0,7)));
