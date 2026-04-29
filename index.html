@@ -832,6 +832,7 @@ function goPage(el){
   document.getElementById('page-'+pg).classList.add('active');
   renderPage(pg);
 }
+
 function renderPage(pg){
   if(pg==='dashboard')    renderDashboard();
   else if(pg==='checkin') renderCheckinPage();
@@ -843,6 +844,7 @@ function renderPage(pg){
   else if(pg==='settings') renderSettings();
   else if(pg.startsWith('cat-')) renderCat(pg.replace('cat-',''));
 }
+
 function refreshPage(){
   const a=document.querySelector('.page.active');
   if(a) renderPage(a.id.replace('page-',''));
