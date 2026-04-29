@@ -78,6 +78,28 @@ textarea.form-control{resize:vertical;min-height:60px}
 .timer-row{display:flex;align-items:center;gap:8px}
 .timer-disp{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;min-width:60px;color:#111}
 .timer-disp.on{color:#059669}
+
+/* KANBAN */
+.todo-card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:12px 14px;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.todo-card:hover{border-color:#d1d5db;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.todo-card.overdue{border-left:3px solid #dc2626}
+.todo-card.due-today{border-left:3px solid #d97706}
+.todo-title{font-size:13px;font-weight:500;margin-bottom:6px;line-height:1.4}
+.todo-meta{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.todo-tag{font-size:10px;padding:1px 7px;border-radius:10px;font-weight:600}
+.todo-deadline{font-size:11px;color:var(--muted)}
+.todo-deadline.overdue{color:#dc2626;font-weight:600}
+.todo-deadline.today{color:#d97706;font-weight:600}
+.priority-high{background:#fef2f2;color:#dc2626}
+.priority-medium{background:#fffbeb;color:#d97706}
+.priority-low{background:#ecfdf5;color:#059669}
+.todo-actions{display:flex;gap:4px;margin-top:8px;padding-top:8px;border-top:1px solid #f3f4f6}
+/* AI CHAT */
+.chat-msg{padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.6;max-width:85%}
+.chat-msg.user{background:#111;color:#fff;align-self:flex-end}
+.chat-msg.ai{background:var(--subtle);color:#1a1a1a;align-self:flex-start;border:1px solid var(--border)}
+.chat-msg.ai.loading{color:var(--muted)}
+
 /* ENTRIES */
 .entry-list{display:flex;flex-direction:column;gap:5px}
 .entry{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:6px;transition:border-color .15s}
@@ -200,6 +222,8 @@ textarea.form-control{resize:vertical;min-height:60px}
     <div class="nav-item" data-page="checkin" onclick="goPage(this)" style="--c:#059669"><span>Daily Check-in</span></div>
     <div class="nav-item" data-page="log" onclick="goPage(this)" style="--c:#6b7280"><span>Log Activity</span></div>
     <div class="nav-item" data-page="history" onclick="goPage(this)" style="--c:#0284c7"><span>History</span></div>
+    <div class="nav-item" data-page="planning" onclick="goPage(this)" style="--c:#7c3aed"><span>Planning</span></div>
+    <div class="nav-item" data-page="ai" onclick="goPage(this)" style="--c:#0284c7"><span>AI Assistant</span></div>
     <div class="nav-item" data-page="settings" onclick="goPage(this)" style="--c:#6b7280">
       <span>⚙ Settings</span>
     </div>
@@ -497,6 +521,88 @@ textarea.form-control{resize:vertical;min-height:60px}
 <div class="page" id="page-cat-self"></div>
 <div class="page" id="page-cat-islamic"></div>
 <div class="page" id="page-cat-org"></div>
+<!-- PLANNING PAGE -->
+<div class="page" id="page-planning">
+  <div class="topbar">
+    <div><h2>Planning</h2><div class="topbar-sub">Manage tasks with deadlines</div></div>
+    <button class="btn btn-primary" onclick="openAddTodo()">+ Add Task</button>
+  </div>
+  <!-- Filter bar -->
+  <div class="filter-row" style="margin-bottom:16px">
+    <select class="form-control" id="todo-filter-cat" style="width:auto" onchange="renderKanban()">
+      <option value="">All Categories</option>
+    </select>
+    <select class="form-control" id="todo-filter-priority" style="width:auto" onchange="renderKanban()">
+      <option value="">All Priorities</option>
+      <option value="high">🔴 High</option>
+      <option value="medium">🟡 Medium</option>
+      <option value="low">🟢 Low</option>
+    </select>
+    <div style="margin-left:auto;font-size:12px;color:var(--muted)" id="todo-count"></div>
+  </div>
+  <!-- Kanban -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px" id="kanban-board">
+    <div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:6px">
+        <div style="width:8px;height:8px;border-radius:50%;background:#6b7280"></div>To Do
+        <span id="k-count-todo" style="margin-left:auto;font-size:10px;background:var(--subtle);border:1px solid var(--border);padding:1px 6px;border-radius:10px">0</span>
+      </div>
+      <div id="k-col-todo" style="display:flex;flex-direction:column;gap:8px;min-height:100px"></div>
+    </div>
+    <div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#d97706;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+        <div style="width:8px;height:8px;border-radius:50%;background:#d97706"></div>In Progress
+        <span id="k-count-progress" style="margin-left:auto;font-size:10px;background:#fffbeb;border:1px solid #fde68a;padding:1px 6px;border-radius:10px;color:#d97706">0</span>
+      </div>
+      <div id="k-col-progress" style="display:flex;flex-direction:column;gap:8px;min-height:100px"></div>
+    </div>
+    <div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#059669;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+        <div style="width:8px;height:8px;border-radius:50%;background:#059669"></div>Done
+        <span id="k-count-done" style="margin-left:auto;font-size:10px;background:#ecfdf5;border:1px solid #a7f3d0;padding:1px 6px;border-radius:10px;color:#059669">0</span>
+      </div>
+      <div id="k-col-done" style="display:flex;flex-direction:column;gap:8px;min-height:100px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- AI ASSISTANT PAGE -->
+<div class="page" id="page-ai">
+  <div class="topbar">
+    <div><h2>AI Assistant</h2><div class="topbar-sub">Powered by Gemini — knows your data</div></div>
+    <button class="btn btn-ghost btn-sm" onclick="generateBriefing()">↻ Refresh Briefing</button>
+  </div>
+  <!-- API Key setup -->
+  <div id="ai-setup" style="display:none">
+    <div class="card" style="border-color:#e0e7ff">
+      <div class="card-title">Setup Gemini API Key</div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Get a free key at <a href="https://aistudio.google.com" target="_blank" style="color:#4f46e5">aistudio.google.com</a> → Get API Key</p>
+      <div style="display:flex;gap:8px">
+        <input class="form-control" id="gemini-key-input" placeholder="AIza..." style="flex:1">
+        <button class="btn btn-primary" onclick="saveGeminiKey()">Save Key</button>
+      </div>
+    </div>
+  </div>
+  <!-- Briefing -->
+  <div class="card" id="ai-briefing-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div class="card-title" style="margin-bottom:0">📋 Daily Briefing</div>
+      <div style="font-size:11px;color:var(--muted)" id="briefing-time"></div>
+    </div>
+    <div id="ai-briefing" style="font-size:13px;color:var(--muted);line-height:1.7">
+      <div style="display:flex;align-items:center;gap:8px"><div class="sync-dot pulse" style="background:#d97706"></div>Generating your briefing…</div>
+    </div>
+  </div>
+  <!-- Chat -->
+  <div class="card">
+    <div class="card-title">💬 Ask Anything</div>
+    <div id="ai-chat-messages" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;max-height:400px;overflow-y:auto"></div>
+    <div style="display:flex;gap:8px">
+      <input class="form-control" id="ai-chat-input" placeholder="Ask about your schedule, patterns, what to focus on…" onkeydown="if(event.key==='Enter')sendChat()">
+      <button class="btn btn-primary" onclick="sendChat()" id="chat-send-btn">Send</button>
+    </div>
+  </div>
+</div>
 
 <!-- ══ SETTINGS ══ -->
 <div class="page" id="page-settings">
@@ -1477,6 +1583,358 @@ updateBadges();
 renderDashboard();
 syncNow();
 setInterval(syncNow,5*60*1000);
+
+// ══════════════════════════════════════════════════════
+// TODOS
+// ══════════════════════════════════════════════════════
+if(!DB.todos) DB.todos = [];
+
+function renderKanban(){
+  const catF  = document.getElementById('todo-filter-cat')?.value  || '';
+  const priF  = document.getElementById('todo-filter-priority')?.value || '';
+
+  // Build cat filter options
+  const sel = document.getElementById('todo-filter-cat');
+  if(sel && sel.options.length <= 1){
+    Object.entries(CATS).forEach(([k,c])=>{
+      const o=document.createElement('option');
+      o.value=k; o.textContent=c.label; sel.appendChild(o);
+    });
+  }
+
+  let todos = DB.todos || [];
+  if(catF) todos = todos.filter(t=>t.cat===catF);
+  if(priF) todos = todos.filter(t=>t.priority===priF);
+
+  const today = todayStr();
+  const cols  = {todo:[],progress:[],done:[]};
+  todos.forEach(t=>{
+    const s = t.status||'todo';
+    if(cols[s]) cols[s].push(t);
+  });
+
+  const total = todos.length;
+  const doneC = cols.done.length;
+  if(document.getElementById('todo-count'))
+    document.getElementById('todo-count').textContent = `${doneC}/${total} complete`;
+
+  ['todo','progress','done'].forEach(status=>{
+    const col = document.getElementById('k-col-'+status);
+    const cnt = document.getElementById('k-count-'+status);
+    if(!col) return;
+    cnt.textContent = cols[status].length;
+    col.innerHTML = cols[status].length
+      ? cols[status].map(t=>todoCardHTML(t,today)).join('')
+      : `<div style="border:1px dashed var(--border);border-radius:8px;padding:20px;text-align:center;font-size:12px;color:var(--light)">No tasks</div>`;
+  });
+}
+
+function todoCardHTML(t, today){
+  const c    = CATS[t.cat]||Object.values(CATS)[0];
+  const dl   = t.deadline;
+  const over = dl && dl < today;
+  const isToday = dl === today;
+  const dlLabel = dl ? (over?'⚠ Overdue: ':isToday?'📅 Due today: ':'')+formatDeadline(dl) : '';
+  const dlCls   = over?'overdue':isToday?'today':'';
+  const priMap  = {high:'🔴 High',medium:'🟡 Medium',low:'🟢 Low'};
+  const priCls  = {high:'priority-high',medium:'priority-medium',low:'priority-low'};
+  const cardCls = over&&t.status!=='done'?'todo-card overdue':isToday&&t.status!=='done'?'todo-card due-today':'todo-card';
+
+  const nextStatus = t.status==='todo'?'progress':t.status==='progress'?'done':'todo';
+  const nextLabel  = t.status==='todo'?'▶ Start':t.status==='progress'?'✓ Done':'↩ Reopen';
+
+  return `<div class="${cardCls}" onclick="">
+    <div class="todo-title">${esc(t.title)}</div>
+    <div class="todo-meta">
+      <span class="todo-tag" style="background:${c.bg};color:${c.color}">${c.label}</span>
+      <span class="todo-tag ${priCls[t.priority]||''}">${priMap[t.priority]||''}</span>
+      ${t.estHours?`<span class="todo-tag" style="background:var(--subtle);color:var(--muted)">~${t.estHours}h</span>`:''}
+    </div>
+    ${dl?`<div class="todo-deadline ${dlCls}" style="margin-top:5px;font-size:11px">${dlLabel}</div>`:''}
+    ${t.notes?`<div style="font-size:11px;color:var(--muted);margin-top:4px">${esc(t.notes)}</div>`:''}
+    <div class="todo-actions">
+      <button class="btn btn-ghost btn-sm" onclick="moveTodo('${t.id}','${nextStatus}');event.stopPropagation()">${nextLabel}</button>
+      <button class="btn btn-ghost btn-sm" onclick="openEditTodo('${t.id}');event.stopPropagation()">Edit</button>
+      <button class="btn btn-ghost btn-sm" style="color:#dc2626;margin-left:auto" onclick="deleteTodo('${t.id}');event.stopPropagation()">Delete</button>
+    </div>
+  </div>`;
+}
+
+function formatDeadline(ds){
+  return new Date(ds+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+
+async function moveTodo(id, status){
+  const t = DB.todos.find(t=>t.id===id);
+  if(t){ t.status=status; saveLocal(); renderKanban(); await syncWrite(); }
+}
+
+async function deleteTodo(id){
+  DB.todos = DB.todos.filter(t=>t.id!==id);
+  saveLocal(); renderKanban(); await syncWrite();
+}
+
+function openAddTodo(){
+  openModal('Add Task', todoForm(), [
+    {label:'Cancel', cls:'btn-ghost', fn:'closeModal()'},
+    {label:'Add Task', cls:'btn-primary', fn:'saveTodo()'}
+  ]);
+}
+
+function openEditTodo(id){
+  const t = DB.todos.find(t=>t.id===id);
+  if(!t) return;
+  openModal('Edit Task', todoForm(t), [
+    {label:'Cancel', cls:'btn-ghost', fn:'closeModal()'},
+    {label:'Save', cls:'btn-primary', fn:`saveTodo('${id}')`}
+  ]);
+}
+
+function todoForm(t={}){
+  const catOpts = Object.entries(CATS).map(([k,c])=>
+    `<option value="${k}" ${t.cat===k?'selected':''}>${c.label}</option>`).join('');
+  return `
+    <div class="form-group" style="margin-bottom:10px">
+      <label>Task Title</label>
+      <input class="form-control" id="m-todo-title" value="${esc(t.title||'')}" placeholder="What needs to be done?">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div class="form-group">
+        <label>Category</label>
+        <select class="form-control" id="m-todo-cat">${catOpts}</select>
+      </div>
+      <div class="form-group">
+        <label>Priority</label>
+        <select class="form-control" id="m-todo-priority">
+          <option value="high"   ${t.priority==='high'?'selected':''}>🔴 High</option>
+          <option value="medium" ${t.priority==='medium'?'selected':''}>🟡 Medium</option>
+          <option value="low"    ${t.priority==='low'?'selected':''}>🟢 Low</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Deadline</label>
+        <input class="form-control" type="date" id="m-todo-deadline" value="${t.deadline||''}">
+      </div>
+      <div class="form-group">
+        <label>Est. Hours</label>
+        <input class="form-control" type="number" id="m-todo-hours" value="${t.estHours||''}" placeholder="e.g. 3" min="0" step="0.5">
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:10px">
+      <label>Status</label>
+      <select class="form-control" id="m-todo-status">
+        <option value="todo"     ${(t.status||'todo')==='todo'?'selected':''}>To Do</option>
+        <option value="progress" ${t.status==='progress'?'selected':''}>In Progress</option>
+        <option value="done"     ${t.status==='done'?'selected':''}>Done</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Notes</label>
+      <textarea class="form-control" id="m-todo-notes" placeholder="Details, links, sub-tasks…">${esc(t.notes||'')}</textarea>
+    </div>`;
+}
+
+async function saveTodo(editId=null){
+  const title = document.getElementById('m-todo-title').value.trim();
+  if(!title){ alert('Please enter a task title'); return; }
+  const todo = {
+    id:       editId || String(Date.now()),
+    title,
+    cat:      document.getElementById('m-todo-cat').value,
+    priority: document.getElementById('m-todo-priority').value,
+    deadline: document.getElementById('m-todo-deadline').value,
+    estHours: parseFloat(document.getElementById('m-todo-hours').value)||0,
+    status:   document.getElementById('m-todo-status').value,
+    notes:    document.getElementById('m-todo-notes').value.trim(),
+    created:  editId ? (DB.todos.find(t=>t.id===editId)?.created||todayStr()) : todayStr()
+  };
+  if(editId) DB.todos = DB.todos.map(t=>t.id===editId?todo:t);
+  else DB.todos.unshift(todo);
+  saveLocal(); closeModal(); renderKanban();
+  await syncWrite(); toast('✓ Task saved');
+}
+
+// ══════════════════════════════════════════════════════
+// AI ASSISTANT
+// ══════════════════════════════════════════════════════
+const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_BASE  = 'https://generativelanguage.googleapis.com/v1beta/models/'+GEMINI_MODEL+':generateContent';
+let GEMINI_KEY = localStorage.getItem('gemini_key') || '';
+
+function saveGeminiKey(){
+  const k = document.getElementById('gemini-key-input').value.trim();
+  if(!k){ alert('Please enter a key'); return; }
+  GEMINI_KEY = k;
+  localStorage.setItem('gemini_key', k);
+  document.getElementById('ai-setup').style.display='none';
+  generateBriefing();
+}
+
+function buildContext(){
+  const today = todayStr();
+  const now   = new Date();
+
+  // Todos summary
+  const todos = DB.todos||[];
+  const overdue  = todos.filter(t=>t.deadline&&t.deadline<today&&t.status!=='done');
+  const dueToday = todos.filter(t=>t.deadline===today&&t.status!=='done');
+  const inProg   = todos.filter(t=>t.status==='progress');
+  const upcoming = todos.filter(t=>t.deadline>today&&t.status!=='done')
+                        .sort((a,b)=>a.deadline.localeCompare(b.deadline)).slice(0,5);
+
+  // Activity log — last 30 days
+  const cutoff = new Date(now); cutoff.setDate(now.getDate()-30);
+  const cutStr = cutoff.toISOString().split('T')[0];
+  const recent = DB.entries.filter(e=>e.date>=cutStr);
+  const catTotals = {};
+  Object.keys(CATS).forEach(k=>{ catTotals[k]=recent.filter(e=>e.cat===k).reduce((s,e)=>s+e.hours,0); });
+
+  // Check-in patterns — last 14 days
+  const ciDays = [];
+  for(let i=0;i<14;i++){
+    const d=new Date(now); d.setDate(now.getDate()-i);
+    const ds=d.toISOString().split('T')[0];
+    const ci=DB.checkins[ds]||{};
+    const prayers=ci.prayers||{};
+    const pCount=PRAYERS.filter(p=>prayers[p]>0).length;
+    ciDays.push({date:ds,prayers:pCount,quran:ci.quranVerses||0,exercise:ci.exerciseMins||0,ehtesab:ci.ehtesab||false});
+  }
+
+  // Today's checkin
+  const todayCi = DB.checkins[today]||{};
+  const todayPrayers = PRAYERS.filter(p=>(todayCi.prayers||{})[p]>0).length;
+
+  return `
+TODAY: ${now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})}
+TIME: ${now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}
+
+=== TODAY'S CHECK-IN ===
+Prayers completed: ${todayPrayers}/5
+Quran verses: ${todayCi.quranVerses||0}
+Exercise: ${todayCi.exerciseMins||0} min
+Ehtesab: ${todayCi.ehtesab?'Yes':'Not done'}
+
+=== TASKS (Kanban) ===
+OVERDUE (${overdue.length}): ${overdue.map(t=>`"${t.title}" (deadline: ${t.deadline}, priority: ${t.priority})`).join(', ')||'None'}
+DUE TODAY (${dueToday.length}): ${dueToday.map(t=>`"${t.title}" (${t.priority} priority)`).join(', ')||'None'}
+IN PROGRESS (${inProg.length}): ${inProg.map(t=>`"${t.title}"${t.deadline?' due '+t.deadline:''}`).join(', ')||'None'}
+UPCOMING: ${upcoming.map(t=>`"${t.title}" due ${t.deadline}`).join(', ')||'None'}
+
+=== ACTIVITY LOG (last 30 days) ===
+${Object.entries(catTotals).map(([k,h])=>`${CATS[k]?.label||k}: ${h.toFixed(1)}h`).join('\n')}
+Total sessions: ${recent.length}
+
+=== 14-DAY CHECK-IN PATTERN ===
+${ciDays.map(d=>`${d.date}: prayers ${d.prayers}/5, quran ${d.quran}v, exercise ${d.exercise}min${d.ehtesab?', ehtesab✓':''}`).join('\n')}
+
+=== CATEGORIES ===
+${Object.entries(CATS).map(([k,c])=>c.label).join(', ')}
+`;
+}
+
+async function callGemini(prompt){
+  if(!GEMINI_KEY) throw new Error('No API key');
+  const r = await fetch(`${GEMINI_BASE}?key=${GEMINI_KEY}`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      contents:[{parts:[{text: prompt}]}],
+      generationConfig:{temperature:0.7, maxOutputTokens:800}
+    })
+  });
+  if(!r.ok){ const e=await r.text(); throw new Error(e); }
+  const d = await r.json();
+  return d.candidates?.[0]?.content?.parts?.[0]?.text || 'No response generated.';
+}
+
+async function generateBriefing(){
+  const briefDiv = document.getElementById('ai-briefing');
+  const timeDiv  = document.getElementById('briefing-time');
+  if(!GEMINI_KEY){
+    document.getElementById('ai-setup').style.display='block';
+    briefDiv.innerHTML='<span style="color:var(--muted)">Enter your Gemini API key above to start.</span>';
+    return;
+  }
+  briefDiv.innerHTML='<div style="display:flex;align-items:center;gap:8px"><div class="sync-dot pulse" style="background:#d97706"></div>Generating your briefing…</div>';
+  timeDiv.textContent='';
+  try {
+    const context = buildContext();
+    const prompt  = `You are a personal productivity assistant. Based on this data about the user's activities, tasks, and Islamic practice, generate a concise daily briefing.
+
+${context}
+
+Write a warm, encouraging briefing with these sections:
+1. **Good morning summary** (2-3 sentences about today)
+2. **⚠️ Urgent** (overdue tasks or critical items — skip if none)
+3. **📅 Today's focus** (top 2-3 things to work on today based on deadlines and patterns)
+4. **📊 Pattern insight** (one observation about their recent habits — prayers, study, exercise)
+5. **💡 Tip** (one actionable suggestion)
+
+Be concise, specific, and use their actual task/category names. Format with markdown bold for headers.`;
+
+    const response = await callGemini(prompt);
+    briefDiv.innerHTML = mdToHtml(response);
+    timeDiv.textContent = 'Generated at '+new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  } catch(e){
+    briefDiv.innerHTML=`<span style="color:#dc2626">⚠️ Error: ${e.message}</span>`;
+  }
+}
+
+async function sendChat(){
+  const input = document.getElementById('ai-chat-input');
+  const msgs  = document.getElementById('ai-chat-messages');
+  const btn   = document.getElementById('chat-send-btn');
+  const text  = input.value.trim();
+  if(!text) return;
+  if(!GEMINI_KEY){ document.getElementById('ai-setup').style.display='block'; return; }
+
+  // Add user message
+  msgs.innerHTML += `<div class="chat-msg user">${esc(text)}</div>`;
+  input.value=''; btn.disabled=true; btn.textContent='…';
+  msgs.scrollTop=msgs.scrollHeight;
+
+  // Loading indicator
+  const loadId='load-'+Date.now();
+  msgs.innerHTML+=`<div class="chat-msg ai loading" id="${loadId}">Thinking…</div>`;
+  msgs.scrollTop=msgs.scrollHeight;
+
+  try {
+    const context = buildContext();
+    const prompt  = `You are a personal productivity assistant for a user. Here is their current data:
+
+${context}
+
+The user asks: "${text}"
+
+Answer helpfully and specifically using their actual data. Be concise (3-5 sentences max unless a list is needed). Use their real task names, categories, and numbers.`;
+
+    const response = await callGemini(prompt);
+    document.getElementById(loadId).outerHTML=`<div class="chat-msg ai">${mdToHtml(response)}</div>`;
+  } catch(e){
+    document.getElementById(loadId).outerHTML=`<div class="chat-msg ai" style="color:#dc2626">⚠️ ${e.message}</div>`;
+  }
+  btn.disabled=false; btn.textContent='Send';
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+// Simple markdown → HTML converter
+function mdToHtml(text){
+  return text
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/^### (.+)$/gm,'<div style="font-weight:700;margin-top:10px;margin-bottom:4px">$1</div>')
+    .replace(/^## (.+)$/gm,'<div style="font-weight:700;font-size:14px;margin-top:12px;margin-bottom:6px">$1</div>')
+    .replace(/^- (.+)$/gm,'<div style="padding-left:14px;margin:2px 0">• $1</div>')
+    .replace(/\n/g,'<br>');
+}
+
+// Hook into renderPage
+const _origRenderPage = renderPage;
+function renderPage(pg){
+  _origRenderPage(pg);
+  if(pg==='planning') renderKanban();
+  if(pg==='ai')       generateBriefing();
+}
 </script>
 </body>
 </html>
