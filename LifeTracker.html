@@ -140,7 +140,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; f
 <div id="loading-bar"></div>
 
 <!-- SETUP SCREEN -->
-<div id="setup">
+<div id="setup" class="hidden">
   <div class="setup-box">
     <h2>LifeTracker Setup</h2>
     <p>Connect a free JSONBin account to store your data in the cloud — works on any device, no server needed.</p>
@@ -353,9 +353,9 @@ const CATS = {
 
 // ── JSONBIN CONFIG ───────────────────────────────────────────
 const JB_BASE = 'https://api.jsonbin.io/v3';
-let JB_KEY    = localStorage.getItem('lt_jb_key')  || '';
-let JB_BIN    = localStorage.getItem('lt_jb_bin')  || '';
-let ONLINE    = !!(JB_KEY && JB_BIN);
+let JB_KEY = '$2a$10$rPARgWq2Cv1ZT3YZfgdkwO2JzTKsI52e9yxTEtw1TdisZfwgyKi8i';
+let JB_BIN = '69f22035aaba88219750c20f';
+let ONLINE = true;
 
 // ── STATE ────────────────────────────────────────────────────
 let entries  = JSON.parse(localStorage.getItem('lt_cache')   || '[]');
@@ -388,7 +388,7 @@ async function connectJSONBin() {
     ONLINE  = true;
     localStorage.setItem('lt_jb_key', JB_KEY);
     localStorage.setItem('lt_jb_bin', JB_BIN);
-    document.getElementById('setup').classList.add('hidden');
+  
     initApp();
   } catch(err2) {
     document.getElementById('setup-err').textContent = '⚠️ ' + err2.message + ' — check your key and try again.';
@@ -399,7 +399,7 @@ async function connectJSONBin() {
 
 function useOffline() {
   ONLINE = false;
-  document.getElementById('setup').classList.add('hidden');
+
   setSyncStatus('ok','Offline mode');
   initApp();
 }
@@ -788,10 +788,7 @@ function initApp() {
 }
 
 // Start
-if(JB_KEY && JB_BIN) {
-  document.getElementById('setup').classList.add('hidden');
-  initApp();
-}
+initApp();
 </script>
 </body>
 </html>
