@@ -200,7 +200,6 @@ textarea.form-control{resize:vertical;min-height:60px}
     <div class="nav-item" data-page="checkin" onclick="goPage(this)" style="--c:#059669"><span>Daily Check-in</span></div>
     <div class="nav-item" data-page="log" onclick="goPage(this)" style="--c:#6b7280"><span>Log Activity</span></div>
     <div class="nav-item" data-page="history" onclick="goPage(this)" style="--c:#0284c7"><span>History</span></div>
-    <div class="nav-item" data-page="monthly" onclick="goPage(this)" style="--c:#7c3aed"><span>Monthly Tracking</span></div>
     <div class="nav-item" data-page="settings" onclick="goPage(this)" style="--c:#6b7280">
       <span>⚙ Settings</span>
     </div>
@@ -1239,6 +1238,13 @@ function renderCat(key){
       <div><h2>${esc(c.label)}</h2></div>
       <button class="btn btn-primary" onclick="goPage(document.querySelector('[data-page=log]'));document.getElementById('f-cat').value='${key}';updateSubs()">+ Log</button>
     </div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center">
+      <div class="tab-row" style="margin-bottom:0">
+        <div class="tab active" id="org-tab-log" onclick="switchOrgTab('log')">Activity Log</div>
+        <div class="tab" id="org-tab-monthly" onclick="switchOrgTab('monthly')">Monthly Tracking</div>
+      </div>
+    </div>
+    <div id="org-log-section">
     <div class="stat-row">
       <div class="stat-card"><div class="num" style="color:${c.color}">${fmtH(totalH)||'0m'}</div><div class="lbl">Total Hours</div></div>
       <div class="stat-card"><div class="num">${catE.length}</div><div class="lbl">Sessions</div></div>
@@ -1246,8 +1252,118 @@ function renderCat(key){
     </div>
     <div class="card"><div class="card-title">Hours by Sub-Category</div><div class="bar-list" id="cb-${key}"></div></div>
     <div class="subcat-chips">${chips}</div>
-    ${mGroups}`;
+    ${mGroups}
+    </div>
+    ${key==='org' ? `<div id="org-monthly-section" style="display:none"></div>` : ''}
+  `;
+    
   barChart(document.getElementById('cb-'+key),subBars);
+  
+  // Only show tabs for org category
+  if(key !== 'org') {
+    const tabRow = el.querySelector('.tab-row');
+    if(tabRow) tabRow.closest('div').style.display = 'none';
+  }
+}
+
+function switchOrgTab(tab) {
+  document.getElementById('org-tab-log').classList.toggle('active', tab==='log');
+  document.getElementById('org-tab-monthly').classList.toggle('active', tab==='monthly');
+  document.getElementById('org-log-section').style.display = tab==='log' ? '' : 'none';
+  
+  const ms = document.getElementById('org-monthly-section');
+  ms.style.display = tab==='monthly' ? '' : 'none';
+  
+  if(tab==='monthly') {
+    const ym = new Date().toISOString().slice(0,7);
+    renderMonthlyInto(ms, ym);
+  }
+}
+
+function renderMonthlyInto(container, ym) {
+  const [yr,mo] = ym.split('-').map(Number);
+  const daysInMonth = new Date(yr, mo, 0).getDate();
+  const monthEntries = DB.entries.filter(e=>e.date.startsWith(ym));
+
+  let totalContacts=0, totalMeetings=0, totalProgTime=0, totalOtherTime=0;
+  const rows = [];
+
+  for(let day=1; day<=daysInMonth; day++) {
+    const ds = `${ym}-${String(day).padStart(2,'0')}`;
+    const ci = DB.checkins[ds] || {};
+    const orgEntries = monthEntries.filter(e=>e.date===ds && e.cat==='org');
+    const contacts  = orgEntries.reduce((s,e)=>s+(e.contacts||0),0);
+    const meetings  = orgEntries.reduce((s,e)=>s+(e.meetings||0),0);
+    const progTime  = orgEntries.reduce((s,e)=>s+(e.progTime||0),0);
+    const otherTime = orgEntries.reduce((s,e)=>s+(e.otherTime||0),0);
+    totalContacts+=contacts; totalMeetings+=meetings;
+    totalProgTime+=progTime; totalOtherTime+=otherTime;
+    rows.push({ds, contacts, meetings, progTime, otherTime, ci});
+  }
+
+  // Build available months for dropdown
+  const now = new Date();
+  let monthOptions = '';
+  for(let i=0; i<12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const val = d.toISOString().slice(0,7);
+    monthOptions += `<option value="${val}" ${val===ym?'selected':''}>${fmtMonth(val)}</option>`;
+  }
+
+  container.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:600">${fmtMonth(ym)}</div>
+      <select class="form-control" style="width:auto" onchange="renderMonthlyInto(document.getElementById('org-monthly-section'),this.value)">
+        ${monthOptions}
+      </select>
+    </div>
+    <div class="stat-row" style="margin-bottom:14px">
+      <div class="stat-card"><div class="num">${totalContacts}</div><div class="lbl">Personal Contacts</div></div>
+      <div class="stat-card"><div class="num">${totalMeetings}</div><div class="lbl">Meetings</div></div>
+      <div class="stat-card"><div class="num">${fmtH(totalProgTime)||'0m'}</div><div class="lbl">Program Time</div></div>
+      <div class="stat-card"><div class="num">${fmtH(totalOtherTime)||'0m'}</div><div class="lbl">Other Time</div></div>
+    </div>
+    <div class="monthly-table-wrap">
+      <table class="monthly-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Personal Contact No</th>
+            <th>Meeting No</th>
+            <th>Program Time (hrs)</th>
+            <th>Other Time (hrs)</th>
+            <th>Quran (Verses)</th>
+            <th>Salat (Jamaat)</th>
+            <th>Exercise (min)</th>
+            <th>Ehtesab</th>
+            <th>Note</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(r => {
+            const {ds,contacts,meetings,progTime,otherTime,ci} = r;
+            const dateLabel = new Date(ds+'T00:00:00').toLocaleDateString('en-US',{weekday:'short',day:'numeric'});
+            const prayers = ci.prayers||{};
+            const pCount = PRAYERS.filter(p=>prayers[p]>0).length;
+            const jCount = PRAYERS.filter(p=>prayers[p]===2).length;
+            const pStr = pCount>0 ? `${pCount}/5${jCount>0?' ('+jCount+'J)':''}` : '-';
+            const ehts = ci.ehtesab!==undefined ? (ci.ehtesab?'<span class="yes">Yes</span>':'<span class="no">No</span>') : '-';
+            return `<tr>
+              <td class="date-col">${dateLabel}</td>
+              <td>${contacts||'-'}</td>
+              <td>${meetings||'-'}</td>
+              <td>${progTime?fmtH(progTime):'-'}</td>
+              <td>${otherTime?fmtH(otherTime):'-'}</td>
+              <td>${ci.quranVerses||'-'}</td>
+              <td>${pStr}</td>
+              <td>${ci.exerciseMins?ci.exerciseMins+'m':'-'}</td>
+              <td>${ehts}</td>
+              <td>${esc(ci.ehtesabNote||'')}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
 }
 function setCatF(key,sub){catFilter[key]=sub;renderCat(key);}
 
