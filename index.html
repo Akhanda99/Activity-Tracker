@@ -838,6 +838,8 @@ function renderPage(pg){
   else if(pg==='log')     renderLogList();
   else if(pg==='history') { hOffset=0; renderHistory(); }
   else if(pg==='monthly') renderMonthly();
+  else if(pg==='planning') renderKanban();
+  else if(pg==='ai')      generateBriefing();
   else if(pg==='settings') renderSettings();
   else if(pg.startsWith('cat-')) renderCat(pg.replace('cat-',''));
 }
@@ -1928,13 +1930,7 @@ function mdToHtml(text){
     .replace(/\n/g,'<br>');
 }
 
-// Hook into renderPage
-const _origRenderPage = renderPage;
-function renderPage(pg){
-  _origRenderPage(pg);
-  if(pg==='planning') renderKanban();
-  if(pg==='ai')       generateBriefing();
-}
+
 </script>
 </body>
 </html>
