@@ -105,7 +105,7 @@ textarea.form-control{resize:vertical;min-height:60px}
 .hm-col{display:flex;flex-direction:column;gap:2px}
 .hm-day-label{font-size:9px;color:var(--light);height:12px;display:flex;align-items:center;margin-right:4px}
 .hm-labels-col{display:flex;flex-direction:column;gap:2px;margin-right:2px}
-.hm-cell{width:12px;height:12px;border-radius:2px;background:#f3f4f6;position:relative;cursor:default;flex-shrink:0}
+.hm-cell{width:16px;height:16px;border-radius:2px;background:#f3f4f6;position:relative;cursor:default;flex-shrink:0}
 .hm-cell:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:#111;color:#fff;font-size:10px;padding:3px 7px;border-radius:4px;white-space:nowrap;z-index:10;pointer-events:none}
 /* TABS */
 .tab-row{display:flex;gap:4px;background:#f3f4f6;padding:3px;border-radius:6px;width:fit-content;margin-bottom:14px}
@@ -812,7 +812,7 @@ function renderHeatmap(){
 
   // Month labels row
   const dayLabels=['M','T','W','T','F','S','S'];
-  let html=`<div style="display:flex;min-width:${cols.length*14}px;margin-bottom:3px;padding-left:18px">`;
+  let html=`<div style="display:flex;min-width:${cols.length*19}px;margin-bottom:3px;padding-left:18px">`;
   let lastMonth=-1;
   cols.forEach(col=>{
     const m=col[0].getMonth();
@@ -834,7 +834,7 @@ function renderHeatmap(){
 
   const now=new Date(); now.setHours(23,59,59);
   cols.forEach(col=>{
-    html+=`<div style="display:flex;flex-direction:column;gap:2px">`;
+    html+=`<div style="display:flex;flex-direction:column;gap:3px">`;
     col.forEach(d=>{
       const ds=d.toISOString().split('T')[0];
       const h=heat[ds]||0;
